@@ -13,7 +13,7 @@ const Navbar = () => {
           href="/"
           className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-200"
         >
-          Freelauncer
+          FreelancePolish
         </Link>
 
         <ul className="hidden sm:flex items-center gap-6">
@@ -27,18 +27,18 @@ const Navbar = () => {
           </li>
           <li>
             <Link
-              href="/about"
+              href="/replies"
               className="text-slate-700 dark:text-slate-200 hover:text-slate-900 transition-colors"
             >
-              About
+              Replies
             </Link>
           </li>
           <li>
             <Link
-              href="/contact"
+              href="/about"
               className="text-slate-700 dark:text-slate-200 hover:text-slate-900 transition-colors"
             >
-              Contact Us
+              About
             </Link>
           </li>
         </ul>

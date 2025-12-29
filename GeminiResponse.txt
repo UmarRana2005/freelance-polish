@@ -1,0 +1,687 @@
+This is a fantastic use case. You are addressing a specific "Cultural and Linguistic Gap" rather than just a translation problem. Freelancers often fail not because of hard skills, but because of Soft Skills and Business Etiquette.
+
+To achieve this with Gemini and Next.js, we need to move beyond simple prompts and implement System-Level Context Engineering.
+
+Here is the complete roadmap and implementation guide to building this "Freelance Communication Coach."
+
+Phase 1: Context Engineering (The "Brain")
+
+We don't just want a translation; we want a persona. We need to instruct Gemini to act as a "Senior Business Communication Expert" who understands South Asian dialects (Urdu/Roman Urdu) and Western Business Standards.
+
+Here is the System Instruction you will feed to Gemini. This is the secret sauce.
+
+The System Prompt Strategy
+
+You should configure the model with instructions to output three specific sections for every request:
+
+Critique: What is wrong with the freelancer's raw thought? (Too direct? Too informal?)
+
+The "Why": Educational component explaining the cultural gap.
+
+Alternatives: 3 versions of the reply (Formal, Persuasive, and Concise).
+
+The Prompt Template
+code
+Text
+download
+content_copy
+expand_less
+Role: You are an Expert Business Communication Coach for freelancers in South Asia (Pakistan/India). Your goal is to bridge the gap between Asian cultural communication styles and Western/European business etiquette.
+
+Capabilities:
+1. You fully understand Roman Urdu, Formal Urdu, and broken English.
+2. You understand the nuances of platforms like Upwork, Fiverr, and LinkedIn.
+
+Task:
+The user will provide a raw input (usually a thought in Roman Urdu or broken English). You must generate a response in the following STRUCTURED format:
+
+---
+### 1. Analysis (Urdu/English Mixed)
+Briefly explain the tone of the user's input. If it is too direct (rude), informal, or desperate, explain *why* this might hurt the relationship with a US/UK client.
+
+### 2. Professional Polish (The Solution)
+Provide 3 distinct options in perfect Professional English:
+- Option A (Standard Professional): Polite, formal, standard business tone.
+- Option B (Persuasive/Warm): Good for building long-term relationships.
+- Option C (Direct but Polite): Good for firm boundaries (scope creep, payment issues).
+
+### 3. Urdu Explanation
+Translate the "Option A" back into Roman Urdu so the freelancer understands exactly what they are sending.
+---
+
+Example Input: "Client bola hai k design pasand nahi aya, paise nahi dega. Me usko bolu k mene mehnat ki hai paise pure luga."
+Example Analysis: "Your raw thought is aggressive. In the West, demanding money immediately after a rejection looks unprofessional. We need to ask *what* specifically is wrong first, then negotiate."
+Phase 2: Technical Implementation (Next.js + Gemini API)
+
+We will use the Next.js App Router and the @google/generative-ai SDK.
+
+1. Setup
+code
+Bash
+download
+content_copy
+expand_less
+npx create-next-app@latest freelancer-helper
+cd freelancer-helper
+npm install @google/generative-ai framer-motion lucide-react
+2. The API Route (Backend)
+
+Create a file at app/api/enhance/route.ts. This ensures your API key stays on the server.
+
+code
+TypeScript
+download
+content_copy
+expand_less
+// app/api/enhance/route.ts
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextResponse } from "next/server";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+const SYSTEM_INSTRUCTION = `
+You are a Business Communication Coach for freelancers. 
+Input: Roman Urdu, Urdu, or Broken English.
+Output: specific markdown format with Analysis, 3 English Options, and Meaning explanation.
+Keep the tone helpful, encouraging, but strictly professional regarding business standards.
+Avoid robotic language.
+`;
+
+export async function POST(req: Request) {
+  try {
+    const { message, mode } = await req.json();
+
+    // Select model (Gemini 1.5 Flash is fast and cheap for text)
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: SYSTEM_INSTRUCTION
+    });
+
+    let prompt = "";
+
+    if (mode === 'reply') {
+      prompt = `The freelancer wants to say this to a client: "${message}". 
+      Analyze this, fix the tone, and give professional English alternatives.`;
+    } else if (mode === 'understand') {
+      prompt = `The freelancer received this message from a client: "${message}". 
+      Explain what the client *really* means in Roman Urdu. Are they angry? Are they happy? 
+      What is the hidden context?`;
+    }
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+
+    return NextResponse.json({ result: text });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to process" }, { status: 500 });
+  }
+}
+3. The Frontend Interface
+
+Create a clean UI in app/page.tsx.
+
+code
+Tsx
+download
+content_copy
+expand_less
+// app/page.tsx
+"use client";
+import { useState } from "react";
+import ReactMarkdown from "react-markdown"; // You might need to install: npm install react-markdown
+
+export default function Home() {
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"reply" | "understand">("reply");
+
+  const handleGenerate = async () => {
+    if (!input) return;
+    setLoading(true);
+    setResult("");
+
+    try {
+      const res = await fetch("/api/enhance", {
+        method: "POST",
+        body: JSON.stringify({ message: input, mode }),
+      });
+      const data = await res.json();
+      setResult(data.result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8 flex flex-col items-center">
+      <div className="max-w-2xl w-full bg-white p-6 rounded-xl shadow-lg">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Freelance Ally 🚀</h1>
+        <p className="text-gray-500 mb-6">
+          Turn Roman Urdu thoughts into Dollar-making English.
+        </p>
+
+        {/* Mode Selector */}
+        <div className="flex gap-4 mb-4">
+          <button
+            onClick={() => setMode("reply")}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              mode === "reply" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+          >
+            Draft a Reply
+          </button>
+          <button
+            onClick={() => setMode("understand")}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              mode === "understand" ? "bg-purple-600 text-white" : "bg-gray-200"
+            }`}
+          >
+            Explain Client's Message
+          </button>
+        </div>
+
+        {/* Input Area */}
+        <textarea
+          className="w-full p-4 border border-gray-300 rounded-lg mb-4 h-32 focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+          placeholder={
+            mode === "reply"
+              ? "Example: Client tang kar raha hai, revisions maang raha hai free me..."
+              : "Paste the client's confusing email here..."
+          }
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+        />
+
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition disabled:opacity-50"
+        >
+          {loading ? "Optimizing..." : "Fix My English"}
+        </button>
+
+        {/* Output Area */}
+        {result && (
+          <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200 prose prose-slate">
+            <ReactMarkdown>{result}</ReactMarkdown>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+Phase 3: The "More Than a Translator" Features
+
+To truly solve the problem you described (freelancers losing clients due to tone), consider adding these specific features to your context engineering or UI:
+
+1. The "Tone Slider" (Context Injection)
+Pass an extra variable to your API.
+
+Options: "Firm/Strict" (for late payments), "Apologetic" (if freelancer made a mistake), "Casual/Friendly" (for long-term clients).
+
+Why: "Give me money" translates differently if you are angry vs. if you are just asking for a scheduled milestone.
+
+2. "Scope Creep" Detector
+In your System Instruction, add a specific rule:
+
+"If the user mentions that the client is asking for extra work without pay, do NOT just translate. Provide a response that politely refers to the original contract and asks for additional budget."
+
+3. Client Interpretation Mode (The "Reality Check")
+Freelancers often misunderstand idioms.
+
+Client: "Let's touch base on Tuesday."
+
+Freelancer misinterpretation: "Touch base?"
+
+Gemini Context: "Client ka matlab hai ke Tuesday ko 'meeting' ya 'update' k liye baat karte hain. Ye physical touch nahi hai, ye business idiom hai."
+
+Example Scenario in your App
+
+User Input (Roman Urdu):
+
+"Yaar client ne msg kiya hai 'I am not sure about this color palette, it feels a bit off'. Usko bolo color change k $10 extra lagenge."
+
+Your App's Output (Gemini):
+
+Analysis: You are being too direct. The client is giving mild feedback ("feels a bit off"). If you immediately demand $10, you look petty and difficult to work with.
+
+Recommended Approach: First, ask what is wrong. Mention the price only if it's a major change from the requirement.
+
+Option 1 (Safe & Professional):
+"Thank you for the feedback. Could you please specify which aspect of the palette feels off? I would be happy to make adjustments to align it with your vision."
+
+Option 2 (Setting Boundaries politely):
+"I appreciate the feedback. If this requires a completely new color scheme different from our initial brief, there might be a small revision fee. However, let's discuss the changes first!"
+
+This approach turns your app into a Mentor, not just a tool.
+
+
+// second response
+
+Here are specific test inputs designed to stress-test your prompt engineering. I have categorized them by Mode (reply vs understand) and by Scenario (Payment, Scope Creep, Feedback, etc.).
+
+Use these to verify if your AI is acting like a "Coach" or just a translator.
+
+🟢 Mode: reply (Freelancer to Client)
+
+Select "Draft a Reply" in your app and paste these.
+
+Scenario 1: The "Money" Problem (Direct vs. Polite)
+
+Input (Roman Urdu):
+
+"Project complete kar diya hai mene. Client ko bolo paise release kar de jaldi, mujhe zaroorat hai."
+
+What to look for:
+
+Critique: The AI should warn that saying "I need money" sounds desperate and unprofessional.
+
+Output: It should generate a polite "Project Handover & Payment Request" message.
+
+Scenario 2: Scope Creep (Saying "No" to free work)
+
+Input (Roman Urdu):
+
+"Client ne jo changes bataye hain wo deal me shamil nahi thay. Usko bolo iske $50 extra lagenge ya phir purana wala hi rakhe."
+
+What to look for:
+
+Critique: The AI should advise on how to ask for money without sounding greedy.
+
+Output: A phrase like "I'm happy to help with these additional requests; however, since this exceeds our original scope..."
+
+Scenario 3: The "Electricity/Excuse" Issue (Cultural Reality)
+
+Input (Broken English/Urdu):
+
+"Light chali gayi thi whole day. Internet bhi slow hai. I send file tomorrow morning pakka."
+
+What to look for:
+
+Critique: The AI should explain that Western clients don't always understand infrastructure issues and might see this as an excuse.
+
+Output: A professional way to say "Unforeseen technical difficulties" rather than "Light chali gayi."
+
+Scenario 4: Dealing with Rude Feedback (Emotional Regulation)
+
+Input (Roman Urdu):
+
+"Client ko bolo k design acha hai, uska taste kharab hai. Mene bohot mehnat ki hai, main change nahi karuga."
+
+What to look for:
+
+Critique: The AI must strictly tell the freelancer STOP. Being defensive will lose the client.
+
+Output: A diplomatic response asking for specific constructive feedback instead of fighting.
+
+🟣 Mode: understand (Client to Freelancer)
+
+Select "Explain Client's Message" in your app and paste these.
+
+Scenario 1: The "Soft" Rejection
+
+Input (Client's Message):
+
+"Thanks for the effort, but we decided to go in a different direction. We will keep your resume on file."
+
+What to look for:
+
+Explanation: The AI should explain in Roman Urdu: "Iska matlab hai unhone apko reject kar diya hai. 'Different direction' aik polite tareeqa hai naa karne ka. Umeed mat rakhna."
+
+Scenario 2: Passive Aggressive Urgency
+
+Input (Client's Message):
+
+"Just following up on this. I thought we agreed on EOD yesterday? Let's get this over the line."
+
+What to look for:
+
+Explanation: The AI should warn: "Client gussay me hai kyunke deadline miss hogayi hai. 'Get this over the line' ka matlab hai bus kaam khatam karo jaldi."
+
+Scenario 3: The Trap (Scope Creep)
+
+Input (Client's Message):
+
+"Love the work! Could you just quickly tweak the layout and maybe add 3 more pages? It should only take you a few minutes."
+
+What to look for:
+
+Explanation: The AI should warn: "Client apse free kaam karwana chahta hai. Wo 'only a few minutes' bol kar kaam chota dikha raha hai taake paise na dene paren. Ispe haan mat karna bina paise baat kiye."
+
+Scenario 4: Business Idioms (Confusion)
+
+Input (Client's Message):
+
+"Let's touch base on Tuesday and drill down into the details. I want to make sure we are on the same page."
+
+What to look for:
+
+Explanation: The AI should translate the idioms: "Wo Tuesday ko meeting karna chahta hai detail me baat karne k liye. Wo confirm karna chahta hai k apko kaam ki sahi samajh agayi hai."
+
+⚡ Quick Tip for Debugging
+
+If the AI is being too robotic, go back to your SYSTEM_INSTRUCTION in the code and add:
+
+"Use emojis in the Analysis section to make it friendly. Speak to the user like a caring older brother or mentor."
+
+
+// third response
+
+This is a complete, modern, and "SaaS-ready" UI implementation using Next.js, Tailwind CSS, Framer Motion (for smooth animations), and Lucide React (for icons).
+
+I have designed this to look professional yet friendly, distinguishing clearly between the "Reply" (Blue theme) and "Understand" (Purple theme) modes.
+
+Prerequisites
+
+Install dependencies:
+
+code
+Bash
+download
+content_copy
+expand_less
+npm install framer-motion lucide-react react-markdown clsx tailwind-merge
+npm install -D @tailwindcss/typography
+
+Update tailwind.config.ts:
+You need the typography plugin to make the Gemini Markdown output look good.
+
+code
+Ts
+download
+content_copy
+expand_less
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [
+    require('@tailwindcss/typography'), // Add this line
+  ],
+};
+export default config;
+The UI Code (app/page.tsx)
+
+Copy this code into your main page file.
+
+code
+Tsx
+download
+content_copy
+expand_less
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Send, 
+  MessageSquare, 
+  Sparkles, 
+  Copy, 
+  Check, 
+  AlertCircle, 
+  ArrowRight,
+  BrainCircuit
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
+
+export default function FreelanceAlly() {
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"reply" | "understand">("reply");
+  const [copied, setCopied] = useState(false);
+
+  // Handle API Call
+  const handleGenerate = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
+    setResult("");
+    
+    try {
+      const res = await fetch("/api/enhance", {
+        method: "POST",
+        body: JSON.stringify({ message: input, mode }),
+      });
+      const data = await res.json();
+      setResult(data.result);
+    } catch (error) {
+      console.error(error);
+      setResult("### Error \nSomething went wrong. Please check your internet connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Copy to Clipboard Function
+  const handleCopy = () => {
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100">
+      
+      {/* Navbar */}
+      <nav className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-600 p-2 rounded-lg">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Freelance Ally
+            </span>
+          </div>
+          <div className="text-sm text-slate-500 hidden sm:block">
+            AI Communication Coach
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-4xl mx-auto px-6 py-10">
+        
+        {/* Header Section */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">
+            Stop losing clients due to <span className="text-indigo-600">misunderstanding.</span>
+          </h1>
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Convert Roman Urdu/Hindi thoughts into professional English, or decode confusing client messages instantly.
+          </p>
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+          
+          {/* Mode Switcher Tabs */}
+          <div className="grid grid-cols-2 border-b border-slate-200 bg-slate-50/50">
+            <button
+              onClick={() => { setMode("reply"); setResult(""); }}
+              className={`py-4 flex items-center justify-center gap-2 font-semibold transition-all duration-200 ${
+                mode === "reply" 
+                  ? "bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm" 
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <Send className="w-4 h-4" />
+              Draft a Reply
+            </button>
+            <button
+              onClick={() => { setMode("understand"); setResult(""); }}
+              className={`py-4 flex items-center justify-center gap-2 font-semibold transition-all duration-200 ${
+                mode === "understand" 
+                  ? "bg-white text-purple-600 border-b-2 border-purple-600 shadow-sm" 
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <BrainCircuit className="w-4 h-4" />
+              Understand Client
+            </button>
+          </div>
+
+          <div className="p-6 md:p-8">
+            
+            {/* Input Label with Animation */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mode}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="mb-3 flex items-center gap-2 text-sm font-medium"
+              >
+                {mode === "reply" ? (
+                  <span className="text-indigo-600 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" /> What do you want to say? (Roman Urdu/English)
+                  </span>
+                ) : (
+                  <span className="text-purple-600 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> Paste the confusing client message here:
+                  </span>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Text Area */}
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={mode === "reply" 
+                ? "e.g., Yar client paise nahi de raha, usko bolo kaam complete hai..." 
+                : "e.g., Let's touch base on Tuesday to drill down into the scope..."}
+              className={`w-full h-40 p-4 rounded-xl border-2 bg-slate-50 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all duration-200 resize-none ${
+                mode === "reply" 
+                  ? "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10" 
+                  : "border-slate-200 focus:border-purple-500 focus:ring-purple-500/10"
+              }`}
+            />
+
+            {/* Action Bar */}
+            <div className="flex justify-between items-center mt-4">
+              <p className="text-xs text-slate-400">
+                Powered by Gemini 1.5 Flash
+              </p>
+              <button
+                onClick={handleGenerate}
+                disabled={loading || !input}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
+                  mode === "reply"
+                    ? "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200"
+                    : "bg-purple-600 hover:bg-purple-700 hover:shadow-purple-200"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    {mode === "reply" ? "Polish My English" : "Explain Context"}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Output Section */}
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <ArrowRight className="w-5 h-5 text-indigo-500" />
+                  Coach's Feedback
+                </h3>
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied ? "Copied!" : "Copy Result"}
+                </button>
+              </div>
+
+              <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm prose prose-slate prose-headings:text-slate-800 prose-p:text-slate-600 prose-li:text-slate-600 prose-strong:text-indigo-700 max-w-none">
+                {/* 
+                  The ReactMarkdown component renders the Gemini output. 
+                  Tailwind Typography plugin automatically styles the HTML tags 
+                  generated by markdown.
+                */}
+                <ReactMarkdown>{result}</ReactMarkdown>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      </main>
+    </div>
+  );
+}
+Key UI Features Explained
+
+Dynamic Mode Switching:
+
+Blue Theme (reply): Suggests business, professionalism, and sending out information.
+
+Purple Theme (understand): Suggests wisdom, insight, and "magic" interpretation of complex client messages.
+
+I used AnimatePresence on the label text so it fades in/out smoothly when switching modes.
+
+Input Experience:
+
+The placeholder text changes dynamically based on the mode. This acts as a subtle tutorial for the user so they know exactly what to type.
+
+The border color changes focus ring color (Blue vs Purple) to reinforce the current mode.
+
+Result Rendering (Crucial):
+
+I wrapped the <ReactMarkdown> component in a div with the class prose prose-slate. This comes from the @tailwindcss/typography plugin.
+
+Without this plugin, the Markdown returned by Gemini (Headings ###, Bold **, Lists -) would look unstyled. The plugin automatically makes it look like a clean document.
+
+I added specific styling prose-strong:text-indigo-700 so that any bold text (which your prompt uses for emphasis) stands out in a nice color.
+
+Feedback Loop:
+
+Loading State: The button shows a spinner and changes text to "Analyzing..." to indicate work is happening.
+
+Copy Button: Freelancers need to copy the polished English quickly. The button changes to "Copied!" briefly to give visual confirmation.
+
+Mobile Responsiveness:
+
+The layout uses max-w-4xl and mx-auto to look great on desktops.
+
+It uses standard padding and flex columns to ensure it stacks perfectly on mobile screens (where many freelancers work via WhatsApp/Upwork apps).
+
+// forth response
+
+You can test them in the "Chat prompt" section.
+
+Go to aistudio.google.com.
+
+Click "Create new" (top left blue button) -> Select "Chat prompt".
+
+System Instructions Box: Paste your SYSTEM_INSTRUCTION code block here.
+
+Chat Interface: Type your test inputs (e.g., "Client paise nahi de raha...") in the "User" input field and press Run.
+

@@ -1,0 +1,150 @@
+"use client";
+import React, { useState } from "react";
+import TextBox from "@/components/TextBox";
+import ReplyBox from "@/components/ReplyBox";
+import UnderstandBox from "@/components/UnderstandBox";
+import ToggleTheme from "@/components/ToggleTheme";
+import { ContextEngineResponse } from "@/types/response_type";
+import { Button } from "@/components/ui/button";
+
+export default function Home() {
+  const [lastMessage, setLastMessage] = useState<{
+    message: string;
+    mode: "reply" | "understand";
+  } | null>(null);
+  const [response, setResponse] = useState<ContextEngineResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSend(payload: {
+    message: string;
+    mode: "reply" | "understand";
+  }) {
+    setLastMessage(payload);
+    setResponse(null);
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/freelauncer_helper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data?.error || "Unexpected error from server");
+        return;
+      }
+
+      // the API returns the typed object when successful
+      setResponse(data as ContextEngineResponse);
+    } catch (err) {
+      setError("Network error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-[#071029] dark:to-black p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="relative mb-6">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500">
+            Freelance Communication Coach
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+            Turn Roman Urdu thoughts into clear, client-ready English. Choose a
+            mode below and press Send.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-neutral-900/60 dark:bg-opacity-40 rounded-xl p-6 shadow-md">
+              <TextBox onSend={handleSend} />
+
+              <div className="mt-4 flex items-center gap-3 text-sm text-muted-foreground">
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-blue-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    <div>Analyzing...</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    Ready — type a message and press Send.
+                  </div>
+                )}
+
+                {error && (
+                  <div className="ml-auto text-sm text-red-600 bg-red-50 px-3 py-1 rounded">
+                    {error}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="hidden md:block">
+              {/* small tips card */}
+              <div className="p-4 rounded-lg bg-white dark:bg-neutral-900/50 shadow-sm text-sm text-muted-foreground">
+                Tip: Use <strong>Shift+Enter</strong> for newline. Press{" "}
+                <strong>Enter</strong> to send.
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="sr-only">Result</h2>
+
+            {!response && !loading && (
+              <div className="p-6 bg-white dark:bg-neutral-900/40 rounded-xl shadow text-sm text-muted-foreground">
+                No result yet — send a message to see suggestions.
+              </div>
+            )}
+
+            {response?.mode === "reply" && <ReplyBox data={response} />}
+            {response?.mode === "understand" && (
+              <UnderstandBox data={response} />
+            )}
+
+            {response && (
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setResponse(null);
+                    setLastMessage(null);
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
