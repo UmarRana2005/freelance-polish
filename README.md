@@ -1,11 +1,10 @@
-# Freelance Polish – Smart English-Urdu Communication Assistant
+# FreelancePolish — Freelance Communication Assistant (repo: `freelauncer_translator`)
 
-![Banner](https://via.placeholder.com/1200x600.png?text=Freelance+Polish+-+Break+the+Language+Barrier)  
-_Empowering Urdu-speaking freelancers to communicate confidently with international clients_
+_A small, focused tool to help Urdu/Roman-Urdu speaking freelancers write professional, client-ready English messages — powered by modern LLMs._
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-15.0-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://react.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.3-blue?logo=react)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 [![Gemini API](https://img.shields.io/badge/Google_Gemini_Pro-4285F4?logo=google)](https://ai.google.dev/)
 
@@ -34,16 +33,16 @@ Built with modern web technologies and powered by **Google Gemini Pro** for stat
 - **Clean, Responsive UI** – Built with Tailwind CSS and React
 - **Privacy-First** – All processing happens server-side; no message logging
 
-## 🛠 Tech Stack
+## 🛠 Tech stack
 
-| Technology                | Purpose                                            |
-| ------------------------- | -------------------------------------------------- |
-| **Next.js 15**            | Full-stack framework (App Router)                  |
-| **React 18**              | Component-based UI                                 |
-| **Tailwind CSS**          | Modern, responsive styling                         |
-| **Google Gemini Pro API** | Advanced translation, rephrasing & tone adjustment |
-| **TypeScript**            | Type safety and better developer experience        |
-| **Vercel**                | Recommended deployment platform                    |
+| Technology               | Purpose                                     |
+| ------------------------ | ------------------------------------------- |
+| **Next.js** (v16.1.1)    | Full-stack framework (App Router)           |
+| **React** (v19.2.3)      | Component-based UI                          |
+| **Tailwind CSS**         | Modern, responsive styling                  |
+| **Google Generative AI** | Gemini/Bison integration helpers            |
+| **TypeScript**           | Type safety and better developer experience |
+| **Vercel**               | Recommended deployment platform             |
 
 ## 📦 Installation & Setup
 
@@ -61,38 +60,55 @@ Built with modern web technologies and powered by **Google Gemini Pro** for stat
    cd freelance-polish
    ```
 
-Install dependenciesBashnpm install
-Set up environment variables
-Create a .env.local file in the root:envGEMINI_API_KEY=your_gemini_api_key_hereGet your key from: https://aistudio.google.com/app/apikey
-Run the development serverBashnpm run devOpen http://localhost:3000 to view the app.
+Install dependencies
+
+```bash
+npm install
+```
+
+Set up environment variables by creating a `.env.local` at the project root:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+# Optional: GEMINI_MODEL_NAME=gemini-3-flash-preview
+```
+
+Run the development server:
+
+```bash
+npm run dev
+# Open http://localhost:3000
+```
 
 🚀 Deployment
 The easiest way to deploy is with Vercel:
 Deploy with Vercel
 Just connect your repo, add the GEMINI_API_KEY in Vercel dashboard → Settings → Environment Variables, and deploy!
 
-📂 Project Structure
-freelance-polish/
+## 📂 Project structure
+
+This repository follows a focused, App Router-based Next.js layout (no `src/` directory in this project — app files live at the repo root).
+
+```
+freelauncer_translator/
 ├── app/
-│ ├── api/
-│ │ └── translate-and-rephrase/ # Gemini-powered endpoint
-│ ├── components/ # Reusable React components
-│ └── page.tsx # Main UI
-├── public/
-├── .env.local # Your Gemini API key
-├── next.config.js
-├── tailwind.config.ts
+│   ├── api/
+│   │   └── freelauncer_helper/route.ts    # LLM-powered endpoint
+│   ├── page.tsx                          # Main UI
+│   └── ...                               # pages (about, replies, test, validate)
+├── components/                           # React components & `ui/` primitives
+├── lib/                                  # prompts, helpers (prompts.ts, utils.ts)
+├── public/                               # static assets and icons
+├── scripts/                              # helper scripts (list_models.js)
+├── types/                                # TypeScript response types
+├── package.json                          # deps & scripts
+├── next.config.ts
+├── tsconfig.json
 └── README.md
+```
 
-🔧 Customization
-Want to add more freelance terms or niche-specific phrases?
-Edit the JSON files in /data/:
+> Note: UI mock images (e.g., `UI_freelance_polish.png`) and plain `.txt` files in the repo are non-essential to functionality — you can ignore them.
 
-jargons.json
-slang.json
-templates.json
-
-Or enhance the Gemini prompt in the API route for even smarter behavior.
 🤝 Contributing
 Contributions are welcome! Feel free to:
 
